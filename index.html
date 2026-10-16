@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Супер Плейер - Comic Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&family=Fredoka+One&family=Fredoka:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg-main: #1e1b4b; --bg-sidebar: #312e81; --bg-group: #4338ca; --bg-input: #1e1b4b;
+            --text-main: #ffffff; --text-muted: #e2e8f0;
+            --comic-yellow: #fde047; --comic-cyan: #38bdf8; --comic-pink: #f43f5e; --comic-green: #4ade80; --comic-purple: #c084fc;
+        }
+        body { font-family: 'Fredoka', 'Comic Neue', sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg-main); color: var(--text-main); overflow: hidden; }
+        .sidebar { width: 500px; background: var(--bg-sidebar); border-right: 4px solid #000; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 6px 0 0 rgba(0,0,0,0.8); }
+        
+        .comic-header {
+            background: linear-gradient(135deg, #f43f5e, #f59e0b);
+            border: 3px solid #000;
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 3px 3px 0px #000;
+            margin-bottom: 2px;
+        }
+        .comic-header h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 30px;
+            color: #fde047;
+            margin: 0;
+            text-shadow: 2px 2px 0px #000, 4px 4px 0px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+        }
+        .comic-header .author-info {
+            font-family: 'Comic Neue', cursive;
+            font-size: 13px;
+            color: #fff;
+            font-weight: bold;
+            margin-top: 4px;
+            text-shadow: 1px 1px 0px #000;
+        }
+        .comic-header a {
+            color: #fde047;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        .comic-header a:hover {
+            color: #38bdf8;
+        }
+
+        .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 5px; }
+        .tab-btn { flex: 1; min-width: 22%; background: #4f46e5; color: #f8fafc; border: 2px solid #000; padding: 8px 4px; cursor: pointer; border-radius: 8px; font-size: 11px; font-weight: bold; text-transform: uppercase; text-align: center; box-shadow: 2px 2px 0px #000; transition: all 0.1s ease; }
+        .tab-btn:hover { background: #6366f1; transform: translateY(-2px); }
+        .tab-btn.active { background: #fde047; color: #1e1b4b; border-color: #000; box-shadow: 2px 2px 0px #000; font-weight: 900; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { font-size: 12px; margin: 5px 0 6px 0; color: #fde047; border-bottom: 3px dashed #fde047; padding-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; font-family: 'Bangers', cursive; text-shadow: 1px 1px 0px #000; }
+        .group { background: var(--bg-group); padding: 12px; border-radius: 12px; border: 3px solid #000; margin-bottom: 10px; box-shadow: 3px 3px 0px #000; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #fef08a; margin-bottom: 4px; text-shadow: 1px 1px 0px rgba(0,0,0,0.5); }
+        input, select, textarea { width: 100%; padding: 7px; background: var(--bg-input); border: 2px solid #000; border-radius: 8px; font-size: 12px; color: var(--text-main); margin-bottom: 6px; box-sizing: border-box; font-family: inherit; box-shadow: inset 2px 2px 0px rgba(0,0,0,0.5); }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #fde047; box-shadow: 0 0 10px #fde047; }
+        input[type="checkbox"] { width: auto; margin-right: 6px; accent-color: #fde047; }
+        input[type="color"] { padding: 2px; height: 32px; cursor: pointer; border: 2px solid #000; border-radius: 6px; }
+        .row { display: flex; gap: 8px; align-items: flex-end; } .row > div { flex: 1; }
+        
+        .main { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 12px; background: var(--bg-main); }
+        .preview-box { flex: 2; background: #09090b; border-radius: 16px; display: flex; align-items: center; justify-content: center; position: relative; border: 4px solid #000; overflow: hidden; box-shadow: 6px 6px 0px rgba(0,0,0,0.8); }
+        
+        .editor-notice {
+            font-family: 'Comic Neue', cursive, sans-serif;
+            font-size: 14px;
+            text-align: center;
+            color: #fde047;
+            text-shadow: 1px 1px 0px #000, 2px 2px 0px rgba(0,0,0,0.5);
+            font-weight: bold;
+            padding: 2px 0;
+        }
+
+        .code-box { height: 120px; background: #18181b; border-radius: 12px; padding: 12px; position: relative; display: flex; flex-direction: column; gap: 8px; border: 3px solid #000; box-shadow: 4px 4px 0px rgba(0,0,0,0.8); }
+        .actions-row { display: flex; gap: 10px; justify-content: flex-end; }
+        #code-res { width: 100%; flex: 1; background: #09090b; color: #a855f7; border: 2px solid #000; border-radius: 6px; font-family: monospace; font-size: 11px; resize: none; outline: none; padding: 6px; }
+        
+        .btn-action { border: 2px solid #000; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 11px; color: #fff; font-weight: bold; transition: all 0.1s ease; text-transform: uppercase; box-shadow: 2px 2px 0px #000; }
+        .btn-action:active { transform: translate(2px, 2px); box-shadow: 0 0 0 #000; }
+        .btn-copy { background: #9333ea; } .btn-copy:hover { background: #a855f7; }
+        .btn-download { background: #ea580c; } .btn-download:hover { background: #f97316; }
+        .btn-html { background: #db2777; } .btn-html:hover { background: #ec4899; }
+        
+        .top-panel { background: #3b82f6; border: 3px solid #000; box-shadow: 3px 3px 0px #000; margin-bottom: 10px; }
+        .top-panel button, .top-panel label.btn-upload { width: 100%; padding: 8px; color: #fff; border: 2px solid #000; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; text-align: center; box-sizing: border-box; display: inline-block; margin-bottom: 0; text-transform: uppercase; box-shadow: 2px 2px 0px #000; }
+        .btn-save-json { background: #0284c7; } .btn-save-json:hover { background: #0ea5e9; }
+        .btn-upload { background: #16a34a; } .btn-upload:hover { background: #22c55e; }
+
+        .preset-btn { flex: 1; padding: 6px 2px; border-radius: 6px; font-size: 9px; cursor: pointer; text-transform: uppercase; font-weight: bold; border: 2px solid #000; box-shadow: 2px 2px 0px #000; transition: transform 0.1s; }
+        .preset-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px #000; }
+        
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-sidebar); } ::-webkit-scrollbar-thumb { background: #4f46e5; border: 2px solid #000; border-radius: 4px; }
+        
+        .q-block { background: rgba(0,0,0,0.3); border-left: 4px solid #c084fc; padding: 8px; border-radius: 6px; border: 2px solid #000; }
+        .q-block textarea { resize: vertical; min-height: 80px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="comic-header">
+        <h1>Супер Плейер</h1>
+        <div class="author-info">
+            Автор: Ольга Тимофеева<br>
+            <a href="https://vk.ru/club221025676" target="_blank">"Да! Доступный Английский!"</a>
+        </div>
+    </div>
+
+    <div class="group top-panel">
+        <div class="row" style="margin-bottom:8px; align-items:center;">
+            <label style="color:#fde047; margin-bottom:0;" data-tr="prst">🎨 Пресеты:</label>
+            <div style="flex:1">
+                <select id="p-lang" onchange="changeLang()" style="margin:0; padding:4px; font-size:10px; background:#1e293b; border-color:#fde047;">
+                    <option value="ru">🇷🇺 Русский</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="de">🇩🇪 Deutsch</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="it">🇮🇹 Italiano</option>
+                    <option value="fr">🇫🇷 Français</option>
+                </select>
+            </div>
+        </div>
+        <div class="row" style="gap:4px;">
+            <button class="preset-btn" style="background:#0f172a; border-color:#00ffff; color:#00ffff;" onclick="setPreset('cyberpunk')">Киберпанк</button>
+            <button class="preset-btn" style="background:#fef08a; border-color:#f59e0b; color:#b45309;" onclick="setPreset('school')">Школа</button>
+            <button class="preset-btn" style="background:#f1f5f9; border-color:#94a3b8; color:#334155;" onclick="setPreset('minimal')">Минимум</button>
+            <button class="preset-btn" style="background:#111827; border-color:#39ff14; color:#39ff14;" onclick="setPreset('neon')">Неон</button>
+            <button class="preset-btn" style="background:#dcfce7; border-color:#22c55e; color:#166534;" onclick="setPreset('nature')">Природа</button>
+        </div>
+        <hr style="border: 0; border-top: 2px dashed rgba(255,255,255,0.2); margin: 10px 0;">
+        <div class="row">
+            <div><button class="btn-save-json" onclick="saveProject()" data-tr="sv">💾 Сохранить (JSON)</button></div>
+            <div><label class="btn-upload"><span data-tr="ld">📂 Загрузить</span><input type="file" accept=".json" onchange="loadProject(this)" style="display:none;"></label></div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab-btn active" onclick="openTab(event, 'tab-1')" data-tr="base">1. Основа</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-2')" data-tr="txt">2. Текст</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-3')" data-tr="tmr">3. Таймер</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-4')" data-tr="mds">4. Режимы</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-5')" data-tr="pnl">5. Пульт</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-6')" data-tr="opt">6. Опции</div>
+        <div class="tab-btn" onclick="openTab(event, 'tab-7')" style="color:#f43f5e; border-color:#000;" data-tr="qz">7. Викторина</div>
+    </div>
+
+    <div id="tab-1" class="tab-content active">
+        <h2 data-tr="base">Основа и Голос</h2>
+        <div class="group">
+            <label>JSON URL (Raw):</label>
+            <input type="text" id="p-url" value="https://raw.githubusercontent.com/OlgaTim777/speechplayer/main/playlist.json" onchange="urlChanged()">
+            <div class="row">
+                <div><label>Голос:</label><select id="p-voice" onchange="liveUpdate()"><option value="female">Женский</option><option value="male">Мужской</option><option value="child">Детский</option></select></div>
+                <div><label>Ширина гаджета:</label><input type="number" id="p-gw" value="600" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>Общий фон:</label><input type="file" id="p-mainbg" accept="image/*" onchange="loadMainBg(this)"></div>
+                <div><label>Фон текста:</label><input type="file" id="p-img" accept="image/*" onchange="loadImg(this)"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-2" class="tab-content">
+        <h2 data-tr="txt">Рабочая область текста</h2>
+        <div class="group">
+            <div class="row">
+                <div><label>Шрифт:</label><select id="p-tf" onchange="liveUpdate()"><option value="Montserrat">Montserrat</option><option value="Fredoka One">Fredoka One</option><option value="Bangers">Bangers</option><option value="Comic Neue">Comic Neue</option><option value="Nunito">Nunito</option><option value="Press Start 2P">Press Start 2P</option></select></div>
+                <div><label>Макс. размер:</label><input type="number" id="p-fs" value="28" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>Цвет текста:</label><input type="color" id="p-tc" value="#333333" oninput="liveUpdate()"></div>
+                <div><label>Highlight:</label><input type="color" id="p-hl" value="#ff0000" oninput="liveUpdate()"></div>
+                <div><label>Интервал:</label><input type="number" id="p-lh" value="1.2" step="0.1" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>Ширина %:</label><input type="number" id="p-tw" value="85" oninput="liveUpdate()"></div>
+                <div><label>Высота %:</label><input type="number" id="p-th" value="40" oninput="liveUpdate()"></div>
+                <div><label>X %:</label><input type="number" id="p-px" value="0" oninput="liveUpdate()"></div>
+                <div><label>Y %:</label><input type="number" id="p-py" value="-5" oninput="liveUpdate()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-3" class="tab-content">
+        <h2 data-tr="tmr">Таймер</h2>
+        <div class="group">
+            <div class="row">
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-ten" onchange="liveUpdate()"><label style="display:inline; margin-left:5px;">Вкл. Таймер</label></div>
+                <div><label>Время (сек):</label><input type="number" id="p-tdur" value="60" oninput="liveUpdate()"></div>
+            </div>
+            <label>Иконка таймера:</label><input type="file" id="p-timg" accept="image/*" onchange="loadTimerImg(this)">
+            <div class="row">
+                <div><label>Размер блока:</label><input type="number" id="p-tsz" value="80" oninput="liveUpdate()"></div>
+                <div><label>X %:</label><input type="number" id="p-tx" value="40" oninput="liveUpdate()"></div>
+                <div><label>Y %:</label><input type="number" id="p-ty" value="-40" oninput="liveUpdate()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-4" class="tab-content">
+        <h2 data-tr="mds">Кнопки режимов</h2>
+        <div class="group">
+            <div class="row">
+                <div><label>Размер шрифта:</label><input type="number" id="p-mfs" value="14" oninput="liveUpdate()"></div>
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-mbold" checked onchange="liveUpdate()"><label style="display:inline; margin-left:5px;">Bold</label></div>
+            </div>
+            <div class="row">
+                <div><label>Study:</label><input type="color" id="p-c1" value="#10b981" oninput="liveUpdate()"></div>
+                <div><label>Prac:</label><input type="color" id="p-c2" value="#f59e0b" oninput="liveUpdate()"></div>
+                <div><label>Train:</label><input type="color" id="p-c3" value="#3b82f6" oninput="liveUpdate()"></div>
+                <div><label>Quiz:</label><input type="color" id="p-c4" value="#9d4edd" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>X %:</label><input type="number" id="p-bx" value="0" oninput="liveUpdate()"></div>
+                <div><label>Y %:</label><input type="number" id="p-by" value="20" oninput="liveUpdate()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-5" class="tab-content">
+        <h2 data-tr="pnl">Список и Управление</h2>
+        <div class="group">
+            <div class="row">
+                <div><label>Цвет иконок:</label><input type="color" id="p-cc" value="#333333" oninput="liveUpdate()"></div>
+                <div><label>Ширина списка %:</label><input type="number" id="p-lw" value="50" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>X списка %:</label><input type="number" id="p-lx" value="0" oninput="liveUpdate()"></div>
+                <div><label>Y списка %:</label><input type="number" id="p-ly" value="-40" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>Ширина панели %:</label><input type="number" id="p-cw" value="75" oninput="liveUpdate()"></div>
+                <div><label>X кнопок %:</label><input type="number" id="p-cx" value="0" oninput="liveUpdate()"></div>
+                <div><label>Y кнопок %:</label><input type="number" id="p-cy" value="40" oninput="liveUpdate()"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-6" class="tab-content">
+        <h2 data-tr="opt">Продвинутые режимы</h2>
+        <div class="group">
+            <div class="row">
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-syllable" onchange="liveUpdate()"><label style="display:inline; margin-left:5px;">Слоговое чтение</label></div>
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-tunnel" onchange="liveUpdate()"><label style="display:inline; margin-left:5px;">Туннель</label></div>
+            </div>
+            <div class="row">
+                <div><label>Видимых слов (Туннель):</label><input type="number" id="p-tunnelCount" value="1" min="0" oninput="liveUpdate()"></div>
+            </div>
+            <label>Свой SFX: Смена режима (Audio)</label>
+            <input type="file" id="p-sfxMode" accept="audio/*" onchange="loadSfx(this, 'mode')">
+            <label>Свой SFX: Конец чтения (Audio)</label>
+            <input type="file" id="p-sfxEnd" accept="audio/*" onchange="loadSfx(this, 'end')">
+        </div>
+    </div>
+
+    <div id="tab-7" class="tab-content">
+        <h2 style="color:#f43f5e; border-color:#f43f5e;" data-tr="qz">Викторина после чтения</h2>
+        <div class="group">
+            <div style="padding-bottom:10px; border-bottom:2px dashed rgba(255,255,255,0.2); margin-bottom:10px;">
+                <input type="checkbox" id="p-qen" onchange="liveUpdate()"><label style="display:inline; margin-left:5px; color:#fde047; font-size:12px;">Активировать викторину</label>
+                <div style="margin-top:8px;">
+                    <label style="color:#38bdf8;">Настроить викторину для текста:</label>
+                    <select id="p-quizTextSel" onchange="changeQuizText()"><option value="0">Загрузка...</option></select>
+                </div>
+            </div>
+            
+            <label style="color:#fff;">Стиль окон (Викторина / Фидбек):</label>
+            <div class="row">
+                <div><label>Цвет фона:</label><input type="color" id="p-qmBg" value="#000000" oninput="liveUpdate()"></div>
+                <div><label>Прозрачность:</label><input type="number" id="p-qmOp" value="0.85" step="0.05" min="0" max="1" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row">
+                <div><label>Ширина %:</label><input type="number" id="p-qmW" value="100" min="10" max="100" oninput="liveUpdate()"></div>
+                <div><label>Высота %:</label><input type="number" id="p-qmH" value="100" min="10" max="100" oninput="liveUpdate()"></div>
+            </div>
+            <div class="row" style="margin-top:10px;">
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-prevQ" onchange="liveUpdate()"><label style="display:inline; margin-left:5px; color:#38bdf8;">Предпросмотр Викторины</label></div>
+                <div style="padding-bottom:10px;"><input type="checkbox" id="p-prevF" onchange="liveUpdate()"><label style="display:inline; margin-left:5px; color:#f43f5e;">Предпросмотр Фидбека</label></div>
+            </div>
+
+            <hr style="border: 0; border-top: 2px dashed rgba(255,255,255,0.2); margin: 10px 0;">
+            <label style="color:#fff;">Стиль Вопросов:</label>
+            <div class="row">
+                <div><label>Шрифт:</label><select id="p-qfont" onchange="liveUpdate()"><option value="Montserrat">Montserrat</option><option value="Fredoka One">Fredoka One</option><option value="Bangers">Bangers</option><option value="Comic Neue">Comic Neue</option><option value="Nunito">Nunito</option><option value="Press Start 2P">Press Start 2P</option></select></div>
+                <div><label>Размер:</label><input type="number" id="p-qsize" value="24" oninput="liveUpdate()"></div>
+                <div><label>Цвет:</label><input type="color" id="p-qcolor" value="#ffffff" oninput="liveUpdate()"></div>
+            </div>
+            <label style="color:#fff; margin-top:5px;">Стиль Ответов (Кнопок):</label>
+            <div class="row">
+                <div><label>Шрифт:</label><select id="p-afont" onchange="liveUpdate()"><option value="Montserrat">Montserrat</option><option value="Fredoka One">Fredoka One</option><option value="Bangers">Bangers</option><option value="Comic Neue">Comic Neue</option><option value="Nunito">Nunito</option><option value="Press Start 2P">Press Start 2P</option></select></div>
+                <div><label>Размер:</label><input type="number" id="p-asize" value="16" oninput="liveUpdate()"></div>
+                <div><label>Цвет:</label><input type="color" id="p-acolor" value="#333333" oninput="liveUpdate()"></div>
+            </div>
+
+            <h3 style="font-size:10px; color:#4ade80; text-transform:uppercase; margin-top:15px; border-bottom:1px solid #4ade80;">Финальный фидбек:</h3>
+            <div class="row">
+                <div><label>Слоган:</label><input type="text" id="p-qfbSlogan" value="Отличная работа!" oninput="liveUpdate()"></div>
+                <div><label>Эмодзи (Награда):</label><input type="text" id="p-qfbEmoji" value="🏆" oninput="liveUpdate()"></div>
+            </div>
+            <label>Картинка награды (вместо эмодзи):</label>
+            <input type="file" id="p-qfbImg" accept="image/*" onchange="loadQfbImg(this)">
+            <div class="row">
+                <div><label>Шрифт фидбека:</label><select id="p-qfbFont" onchange="liveUpdate()"><option value="Montserrat">Montserrat</option><option value="Fredoka One">Fredoka One</option><option value="Bangers">Bangers</option><option value="Comic Neue">Comic Neue</option><option value="Nunito">Nunito</option><option value="Press Start 2P">Press Start 2P</option></select></div>
+                <div><label>Размер:</label><input type="number" id="p-qfbSize" value="28" oninput="liveUpdate()"></div>
+                <div><label>Цвет:</label><input type="color" id="p-qfbColor" value="#ffff00" oninput="liveUpdate()"></div>
+            </div>
+
+            <h3 style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-top:15px;">Данные (каждый с новой строки):</h3>
+            <div id="quiz-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="q-block">
+                    <label style="color:#38bdf8;">Вопросы (в столбик):</label>
+                    <textarea id="p-qList" placeholder="Вопрос 1&#10;Вопрос 2&#10;Вопрос 3" oninput="quizMapUpdate(); liveUpdate()"></textarea>
+                </div>
+                <div class="q-block">
+                    <label style="color:#4ade80;">Верные ответы (в столбик):</label>
+                    <textarea id="p-aListC" placeholder="Верный 1&#10;Верный 2&#10;Верный 3" oninput="quizMapUpdate(); liveUpdate()"></textarea>
+                </div>
+                <div class="q-block">
+                    <label style="color:#f43f5e;">Ложные ответы (через запятую, в столбик):</label>
+                    <textarea id="p-aListW" placeholder="Ложь 1а, Ложь 1б&#10;Ложь 2а, Ложь 2б&#10;Ложь 3а, Ложь 3б" oninput="quizMapUpdate(); liveUpdate()"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <div class="preview-box" id="pv-container"></div>
+    <div class="editor-notice">Только для личного использования. Продажа и передача третьим лицам запрещена. Все права защищены.</div>
+    <div class="code-box">
+        <div class="actions-row">
+            <button class="btn-action btn-copy" onclick="copyCode()">Copy Code</button>
+            <button class="btn-action btn-download" onclick="downloadCode()" data-tr="dwC">Скачать (Genially)</button>
+            <button class="btn-action btn-html" onclick="downloadHTML()" data-tr="dwH">Скачать HTML</button>
+        </div>
+        <textarea id="code-res" readonly></textarea>
+    </div>
+</div>
+
+<script>
+    const uiDict = {
+        ru: { "base": "1. Основа", "txt": "2. Текст", "tmr": "3. Таймер", "mds": "4. Режимы", "pnl": "5. Пульт", "opt": "6. Опции", "qz": "7. Викторина", "sv": "💾 Сохранить (JSON)", "ld": "📂 Загрузить", "prst": "🎨 Пресеты:", "dwC": "Скачать (Genially)", "dwH": "Скачать HTML" },
+        en: { "base": "1. Basic", "txt": "2. Text", "tmr": "3. Timer", "mds": "4. Modes", "pnl": "5. Panel", "opt": "6. Options", "qz": "7. Quiz", "sv": "💾 Save (JSON)", "ld": "📂 Load", "prst": "🎨 Presets:", "dwC": "Download (Genially)", "dwH": "Download HTML" },
+        de: { "base": "1. Basis", "txt": "2. Text", "tmr": "3. Timer", "mds": "4. Modi", "pnl": "5. Panel", "opt": "6. Optionen", "qz": "7. Quiz", "sv": "💾 Speichern", "ld": "📂 Laden", "prst": "🎨 Vorlagen:", "dwC": "Download (Genially)", "dwH": "Download HTML" },
+        zh: { "base": "1. 基础", "txt": "2. 文本", "tmr": "3. 计时", "mds": "4. 模式", "pnl": "5. 面板", "opt": "6. 选项", "qz": "7. 测验", "sv": "💾 保存 (JSON)", "ld": "📂 加载", "prst": "🎨 预设:", "dwC": "下载 (Genially)", "dwH": "下载 HTML" },
+        it: { "base": "1. Base", "txt": "2. Testo", "tmr": "3. Timer", "mds": "4. Modalità", "pnl": "5. Pannello", "opt": "6. Opzioni", "qz": "7. Quiz", "sv": "💾 Salva (JSON)", "ld": "📂 Carica", "prst": "🎨 Stili:", "dwC": "Scarica (Genially)", "dwH": "Scarica HTML" },
+        fr: { "base": "1. Base", "txt": "2. Texte", "tmr": "3. Minuteur", "mds": "4. Modes", "pnl": "5. Panneau", "opt": "6. Options", "qz": "7. Quiz", "sv": "💾 Enregistrer", "ld": "📂 Charger", "prst": "🎨 Styles:", "dwC": "Télécharger (Genially)", "dwH": "Télécharger HTML" }
+    };
+    
+    const trDict = {
+        ru: { st:"Study", pr:"Practice", tr:"Training", qz:"Quiz", cl:"Закрыть", tm:"⏳ Время: ", cr:"✅ Верно (с 1-й попытки): ", of:" из " },
+        en: { st:"Study", pr:"Practice", tr:"Training", qz:"Quiz", cl:"Close", tm:"⏳ Time: ", cr:"✅ Correct (1st try): ", of:" of " },
+        de: { st:"Lernen", pr:"Üben", tr:"Training", qz:"Quiz", cl:"Schließen", tm:"⏳ Zeit: ", cr:"✅ Richtig (1. Versuch): ", of:" von " },
+        zh: { st:"学习", pr:"练习", tr:"训练", qz:"测验", cl:"关闭", tm:"⏳ 时间: ", cr:"✅ 正确 (首次): ", of:" / " },
+        it: { st:"Studio", pr:"Pratica", tr:"Allenamento", qz:"Quiz", cl:"Chiudi", tm:"⏳ Tempo: ", cr:"✅ Corretto (1° tent): ", of:" su " },
+        fr: { st:"Étude", pr:"Pratique", tr:"Entraîn.", qz:"Quiz", cl:"Fermer", tm:"⏳ Temps: ", cr:"✅ Correct (1er essai): ", of:" sur " }
+    };
+
+    function changeLang() {
+        let l = document.getElementById('p-lang').value;
+        let d = uiDict[l];
+        if(d) {
+            document.querySelectorAll('[data-tr]').forEach(el => {
+                if(d[el.getAttribute('data-tr')]) el.innerText = d[el.getAttribute('data-tr')];
+            });
+        }
+        liveUpdate();
+    }
+
+    let imgData = '', timerImgData = '', mainBgImgData = '';
+    let sfxModeData = '', sfxEndData = '';
+    let qfbImgData = '';
+    let lastGeneratedContent = '';
+    
+    let quizMap = { "0": { qList: "", aListC: "", aListW: "" } };
+    let currentQuizIdx = "0";
+
+    function openTab(evt, tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        evt.currentTarget.classList.add('active');
+    }
+
+    function setPreset(p) {
+        const set = (id, v) => { const el = document.getElementById('p-'+id); if(el) { if(el.type==='checkbox') el.checked=v; else el.value=v; }};
+        if(p==='cyberpunk') { set('tf', 'Press Start 2P'); set('tc', '#00ffff'); set('hl', '#ff00ff'); set('c1', '#00ffff'); set('c2', '#ff00ff'); set('c3', '#ffff00'); set('c4', '#00ff00'); set('cc', '#ffffff'); set('qfont', 'Press Start 2P'); set('qcolor', '#00ffff'); set('afont', 'Press Start 2P'); set('qfbFont', 'Press Start 2P'); set('qfbColor', '#00ff00'); set('qmBg', '#1a0b2e'); set('qmOp', '0.9'); }
+        if(p==='school') { set('tf', 'Comic Neue'); set('tc', '#1e3a8a'); set('hl', '#ea580c'); set('c1', '#16a34a'); set('c2', '#ea580c'); set('c3', '#2563eb'); set('c4', '#9333ea'); set('cc', '#1e3a8a'); set('qfont', 'Comic Neue'); set('qcolor', '#1e3a8a'); set('afont', 'Comic Neue'); set('qfbFont', 'Comic Neue'); set('qfbColor', '#ea580c'); set('qmBg', '#ffffff'); set('qmOp', '0.95'); }
+        if(p==='minimal') { set('tf', 'Montserrat'); set('tc', '#333333'); set('hl', '#000000'); set('c1', '#555555'); set('c2', '#777777'); set('c3', '#999999'); set('c4', '#aaaaaa'); set('cc', '#333333'); set('qfont', 'Montserrat'); set('qcolor', '#333333'); set('afont', 'Montserrat'); set('qfbFont', 'Montserrat'); set('qfbColor', '#ffffff'); set('qmBg', '#f8fafc'); set('qmOp', '0.9'); }
+        if(p==='neon') { set('tf', 'Bangers'); set('tc', '#39ff14'); set('hl', '#ff007f'); set('c1', '#00ffff'); set('c2', '#39ff14'); set('c3', '#ff007f'); set('c4', '#ffff00'); set('cc', '#ffffff'); set('qfont', 'Bangers'); set('qcolor', '#39ff14'); set('afont', 'Bangers'); set('qfbFont', 'Bangers'); set('qfbColor', '#ffff00'); set('qmBg', '#020617'); set('qmOp', '0.9'); }
+        if(p==='nature') { set('tf', 'Nunito'); set('tc', '#14532d'); set('hl', '#16a34a'); set('c1', '#16a34a'); set('c2', '#ca8a04'); set('c3', '#0284c7'); set('c4', '#15803d'); set('cc', '#14532d'); set('qfont', 'Nunito'); set('qcolor', '#14532d'); set('afont', 'Nunito'); set('qfbFont', 'Nunito'); set('qfbColor', '#ca8a04'); set('qmBg', '#f0fdf4'); set('qmOp', '0.95'); }
+        liveUpdate();
+    }
+
+    async function fetchEditorPlaylist() {
+        try {
+            const url = document.getElementById('p-url').value;
+            const r = await fetch(url);
+            const pl = await r.json();
+            const sel = document.getElementById('p-quizTextSel');
+            if (Array.isArray(pl) && pl.length > 0) {
+                sel.innerHTML = pl.map((item, i) => `<option value="${i}">${item.title}</option>`).join("");
+                pl.forEach((_, i) => { if (!quizMap[i]) quizMap[i] = { qList: "", aListC: "", aListW: "" }; });
+                if (!quizMap[currentQuizIdx]) currentQuizIdx = "0";
+                sel.value = currentQuizIdx;
+            }
+        } catch (e) { console.log("JSON Load error"); }
+        updateQuizUI();
+    }
+
+    function urlChanged() { fetchEditorPlaylist().then(() => liveUpdate()); }
+
+    function changeQuizText() {
+        quizMapUpdate();
+        currentQuizIdx = document.getElementById('p-quizTextSel').value;
+        updateQuizUI();
+        liveUpdate();
+    }
+
+    function quizMapUpdate() {
+        quizMap[currentQuizIdx] = {
+            qList: document.getElementById('p-qList').value,
+            aListC: document.getElementById('p-aListC').value,
+            aListW: document.getElementById('p-aListW').value
+        };
+    }
+
+    function updateQuizUI() {
+        const data = quizMap[currentQuizIdx] || { qList: "", aListC: "", aListW: "" };
+        document.getElementById('p-qList').value = data.qList;
+        document.getElementById('p-aListC').value = data.aListC;
+        document.getElementById('p-aListW').value = data.aListW;
+    }
+
+    function saveProject() {
+        quizMapUpdate();
+        const configData = getCfg();
+        const projectData = { config: configData, imgData, timerImgData, mainBgImgData, sfxModeData, sfxEndData, qfbImgData, quizMap };
+        const blob = new Blob([JSON.stringify(projectData)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'voice_pro_project.json'; a.click();
+    }
+
+    function loadProject(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.config) {
+                    Object.keys(data.config).forEach(key => {
+                        const el = document.getElementById('p-' + key);
+                        if (el) { if (el.type === 'checkbox') el.checked = data.config[key]; else el.value = data.config[key]; }
+                    });
+                }
+                if (data.imgData !== undefined) imgData = data.imgData;
+                if (data.timerImgData !== undefined) timerImgData = data.timerImgData;
+                if (data.mainBgImgData !== undefined) mainBgImgData = data.mainBgImgData;
+                if (data.sfxModeData !== undefined) sfxModeData = data.sfxModeData;
+                if (data.sfxEndData !== undefined) sfxEndData = data.sfxEndData;
+                if (data.qfbImgData !== undefined) qfbImgData = data.qfbImgData;
+                if (data.quizMap !== undefined) quizMap = data.quizMap;
+                fetchEditorPlaylist().then(() => liveUpdate());
+            } catch (err) { alert('Ошибка проекта!'); }
+        };
+        reader.readAsText(input.files[0]); input.value = ''; 
+    }
+
+    const loadImg = (inp) => { if(inp.files[0]){ let r=new FileReader(); r.onload=(e)=>{imgData=e.target.result; fullReload();}; r.readAsDataURL(inp.files[0]); }};
+    const loadTimerImg = (inp) => { if(inp.files[0]){ let r=new FileReader(); r.onload=(e)=>{timerImgData=e.target.result; fullReload();}; r.readAsDataURL(inp.files[0]); }};
+    const loadMainBg = (inp) => { if(inp.files[0]){ let r=new FileReader(); r.onload=(e)=>{mainBgImgData=e.target.result; fullReload();}; r.readAsDataURL(inp.files[0]); }};
+    const loadSfx = (inp, type) => { if(inp.files[0]){ let r=new FileReader(); r.onload=(e)=>{ if(type==='mode') sfxModeData=e.target.result; else sfxEndData=e.target.result; fullReload();}; r.readAsDataURL(inp.files[0]); }};
+    const loadQfbImg = (inp) => { if(inp.files[0]){ let r=new FileReader(); r.onload=(e)=>{qfbImgData=e.target.result; fullReload();}; r.readAsDataURL(inp.files[0]); }};
+
+    function getCfg() {
+        const ids = ['p-gw','p-fs','p-tc','p-hl','p-px','p-py','p-tw','p-th','p-lh','p-c1','p-c2','p-c3','p-c4','p-url','p-bx','p-by','p-tf','p-mfs','p-cc','p-mbold','p-lw','p-lx','p-ly','p-voice','p-cx','p-cy', 'p-cw', 'p-ten', 'p-tdur', 'p-tx', 'p-ty', 'p-tsz', 'p-syllable', 'p-tunnel', 'p-tunnelCount', 'p-qen', 'p-qfont', 'p-qsize', 'p-qcolor', 'p-afont', 'p-asize', 'p-acolor', 'p-qfbSlogan', 'p-qfbEmoji', 'p-qfbFont', 'p-qfbSize', 'p-qfbColor', 'p-lang', 'p-qmBg', 'p-qmOp', 'p-qmW', 'p-qmH', 'p-prevQ', 'p-prevF'];
+        let c = {}; 
+        ids.forEach(id => { const el = document.getElementById(id); if(el) c[id.replace('p-','')] = el.type === 'checkbox' ? el.checked : el.value; });
+        return c;
+    }
+
+    const esc = (t) => t ? t.trim() : "";
+    
+    const hex2rgbStr = (hex) => {
+        try {
+            let h = (hex || '#000000').replace('#', '');
+            if(h.length === 3) h = h.split('').map(x=>x+x).join('');
+            return `${parseInt(h.substring(0,2),16)||0},${parseInt(h.substring(2,4),16)||0},${parseInt(h.substring(4,6),16)||0}`;
+        } catch(e) { return '0,0,0'; }
+    };
+
+    function fullReload() {
+        quizMapUpdate();
+        const c = getCfg();
+        
+        c.gw = c.gw || 600; c.fs = c.fs || 28; c.lh = c.lh || 1.2; c.tw = c.tw || 85; c.th = c.th || 40; 
+        c.px = c.px || 0; c.py = c.py || -5; c.tdur = c.tdur || 60; c.tsz = c.tsz || 80; c.tx = c.tx || 40; c.ty = c.ty || -40;
+        c.mfs = c.mfs || 14; c.bx = c.bx || 0; c.by = c.by || 20; c.lw = c.lw || 50; c.lx = c.lx || 0; c.ly = c.ly || -40;
+        c.cw = c.cw || 75; c.cx = c.cx || 0; c.cy = c.cy || 40; c.tunnelCount = c.tunnelCount || 1;
+        c.qsize = c.qsize || 24; c.asize = c.asize || 16; c.qfbSize = c.qfbSize || 28;
+
+        const blockBgStyle = imgData ? `background-image:url(${imgData});background-size:100% 100%;` : `background:#f8fafc;border:2px dashed #ccc;`;
+        const bodyBgStyle = mainBgImgData ? `background-image:url(${mainBgImgData});background-size:cover;background-position:center;` : `background:transparent;`;
+        
+        const modalBgRaw = c.qmBg || '#000000';
+        const modalOp = c.qmOp !== "" ? c.qmOp : 0.85;
+        const rgbStr = hex2rgbStr(modalBgRaw);
+        const modalBg = `rgba(${rgbStr}, ${modalOp})`;
+        
+        const qmW = c.qmW || 100; const qmH = c.qmH || 100;
+        const modalPos = (qmW < 100 || qmH < 100) ? `top:50%; left:50%; transform:translate(-50%,-50%); border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,0.8);` : `top:0; left:0;`;
+
+        let timerHTML = '';
+        if (c.ten) {
+            timerHTML = `<div id='timer-ui' style='position:absolute; width:${c.tsz}px; left:calc(50% + ${c.tx}%); top:calc(50% + ${c.ty}%); transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; gap:8px; z-index:120; font-family:"${c.tf}",sans-serif; font-size:${Math.round(c.tsz/2.5)}px; font-weight:bold; color:${c.tc};'>
+                ${timerImgData ? `<img src="${timerImgData}" style="height:100\%; max-height:${Math.round(c.tsz/1.5)}px; object-fit:contain;">` : `⏱️`}
+                <span id='t-disp'></span>
+            </div>`;
+        }
+
+        let allQuizDataParsed = {};
+        Object.keys(quizMap).forEach(idx => {
+            const qLines = (quizMap[idx].qList || '').split('\n');
+            const cLines = (quizMap[idx].aListC || '').split('\n');
+            const wLines = (quizMap[idx].aListW || '').split('\n');
+            let arr = [];
+            const maxLen = Math.max(qLines.length, cLines.length, wLines.length);
+            for(let i=0; i<maxLen; i++) {
+                let q = qLines[i] ? qLines[i].trim() : ''; let ac = cLines[i] ? cLines[i].trim() : ''; let aw = wLines[i] ? wLines[i].trim() : '';
+                if(q || ac || aw) arr.push({q: esc(q), c: esc(ac), w: esc(aw)});
+            }
+            if(arr.length > 0) allQuizDataParsed[idx] = arr;
+        });
+
+        const safeQuizJson = JSON.stringify(allQuizDataParsed).replace(/</g, '\\u003c');
+
+        const content = `<!DOCTYPE html><html lang='${c.lang}'><head><meta charset='UTF-8'>
+<link href='https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&family=Fredoka+One&family=Fredoka:wght@400;700&family=Montserrat:wght@400;700&family=Nunito:wght@700&family=Press+Start+2P&display=swap' rel='stylesheet'>
+<style>
+body{margin:0;display:flex;justify-content:center;align-items:center;height:100vh;${bodyBgStyle}overflow:hidden; transition: background 0.3s;}
+#w{position:relative;width:${c.gw}px;aspect-ratio:1.6;${blockBgStyle} transition: background 0.3s, border-color 0.3s; overflow:hidden;}
+#plist-ui{position:absolute;width:${c.lw}%;left:calc(50% + ${c.lx}%);top:calc(50% + ${c.ly}%);transform:translate(-50%,-50%);z-index:110;}
+#plist-sel{width:100%;padding:4px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);font-family:sans-serif;font-size:11px;background:white;cursor:pointer;}
+#s{position:absolute;width:${c.tw}%;height:${c.th}%;left:calc(50% + ${c.px}%);top:calc(50% + ${c.py}%);transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;padding:10px;box-sizing:border-box;}
+#t{color:${c.tc};font-size:${c.fs}px;width:100%;line-height:${c.lh};font-family:'${c.tf}', 'Fredoka One', sans-serif;font-weight:700;pointer-events:none; transition: color 0.3s;}
+.itm{display:inline-block;margin:0 3px; transition: opacity 0.3s;} .a{color:${c.hl}!important;}
+#modes{position:absolute;width:90%;left:calc(50% + ${c.bx}%);top:calc(50% + ${c.by}%);transform:translate(-50%,-50%);display:flex;gap:15px;justify-content:center; z-index:120;}
+.m-btn{background:none;border:none;cursor:pointer;font-family:'${c.tf}', sans-serif;font-size:${c.mfs}px;font-weight:${c.mbold?'bold':'normal'};padding:5px;}
+#b-s{color:${c.c1};} #b-p{color:${c.c2};} #b-t{color:${c.c3};} #b-q{color:${c.c4};}
+.m-btn.act{text-decoration:underline;text-underline-offset:5px;}
+#ctrl{position:absolute;width:${c.cw}%;left:calc(50% + ${c.cx}%);top:calc(50% + ${c.cy}%);transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:15px;color:${c.cc}; z-index:150;}
+#ctrl button{background:none;border:none;cursor:pointer;font-size:24px;color:inherit; transition:transform 0.2s;} #ctrl button:hover{transform:scale(1.2);}
+#pb-c{flex:1; height:12px; background:rgba(0,0,0,0.15); border-radius:6px; overflow:hidden; cursor:pointer; position:relative; box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);}
+#pb-f{width:0%; height:100%; background:linear-gradient(90deg, ${c.hl}, ${c.c2}); border-radius:6px; transition:width 0.3s linear; box-shadow:0 0 10px ${c.hl};}
+input[type=range]{cursor:pointer;accent-color:${c.hl};width:60px;}
+
+body.nm { background: #121212 !important; }
+#w.nm { background: #1e1e1e !important; border-color: #333 !important; background-image: none !important; }
+#t.nm { color: #f0f0f0 !important; }
+.nm #pb-c { background: rgba(255,255,255,0.2); }
+.fw { position:absolute; width:10px; height:10px; border-radius:50%; animation:pop 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; pointer-events:none; z-index:400;}
+@keyframes pop { 0%{transform:scale(1) translateY(0); opacity:1;} 100%{transform:scale(0.1) translateY(100px); opacity:0;} }
+
+/* Quiz Styles */
+#quiz-modal, #quiz-feedback { display:none; position:absolute; width:${qmW}%; height:${qmH}%; ${modalPos} background:${modalBg}; z-index:300; align-items:center; justify-content:center; flex-direction:column; padding:20px; box-sizing:border-box; transition: background 0.3s;}
+#quiz-feedback { z-index:350; text-align:center; color:${c.qfbColor}; font-family:'${c.qfbFont}', 'Fredoka One', sans-serif; font-size:${c.qfbSize}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+#quiz-q { color:${c.qcolor}; font-family:'${c.qfont}', 'Fredoka One', sans-serif; font-size:${c.qsize}px; margin-bottom:30px; text-align:center; max-width:90%; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);}
+#quiz-opts { display:flex; flex-wrap:wrap; gap:15px; justify-content:center; max-width:90%; }
+.qz-btn { font-family:'${c.afont}', 'Fredoka One', sans-serif; font-size:${c.asize}px; color:${c.acolor}; background:#fff; border:3px solid ${c.hl}; border-radius:12px; padding:12px 24px; cursor:pointer; font-weight:bold; transition:all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);}
+.qz-btn:hover { transform:scale(1.05); background:#f8fafc; }
+
+#qfb-reward img { max-height: 120px; margin-top:15px; border-radius:10px; }
+#qfb-reward span { font-size: 3em; display:block; margin-top:15px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.5)); }
+#qfb-stats { font-size: 0.7em; opacity: 0.9; margin: 15px 0; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); line-height: 1.5; color:#fff; }
+</style></head><body>
+<div id='w'>
+    ${timerHTML}
+    <div id='plist-ui'><select id='plist-sel' onchange='window.loadL(this.value)'><option>Loading...</option></select></div>
+    <div id='s'><div id='t'></div></div>
+    <div id='modes'>
+        <button id='b-s' class='m-btn act' onclick='window.setM("study")'></button>
+        <button id='b-p' class='m-btn' onclick='window.setM("practice")'></button>
+        <button id='b-t' class='m-btn' onclick='window.setM("train")'></button>
+        <button id='b-q' class='m-btn' onclick='window.startQuizManual()'></button>
+    </div>
+    <div id='ctrl'>
+        <button onclick='window.tgNm()' title='Night Mode' style='font-size:18px;'>🌙</button>
+        <button onclick='window.p()'>▶</button><button onclick='window.pa()'>II</button><button onclick='window.st()'>■</button>
+        <div id='pb-c' onclick='window.sk(event)'><div id='pb-f'></div></div>
+        <span style='font-size:16px;'>🔊</span><input type='range' id='vol' value='1' min='0' max='1' step='0.1' oninput='window.vM(this.value)'>
+    </div>
+    <div id='quiz-modal'>
+        <div id='quiz-q'></div>
+        <div id='quiz-opts'></div>
+    </div>
+    <div id='quiz-feedback'>
+        <div id='qfb-slogan'></div>
+        <div id='qfb-stats'></div>
+        <div id='qfb-reward'></div>
+        <button id='b-cl' class="qz-btn" style="margin-top:20px; font-size:${c.asize}px; font-family:'${c.afont}', sans-serif;" onclick="document.getElementById('quiz-feedback').style.display='none'; document.getElementById('quiz-modal').style.display='none';"></button>
+    </div>
+</div>
+<script>
+(function(){
+    const trLangDict = ${JSON.stringify(trDict)};
+    const curLang = "${c.lang}" || "ru";
+    const tr = trLangDict[curLang] || trLangDict['ru'];
+
+    document.getElementById('b-s').innerText = tr.st;
+    document.getElementById('b-p').innerText = tr.pr;
+    document.getElementById('b-t').innerText = tr.tr;
+    document.getElementById('b-q').innerText = tr.qz;
+    document.getElementById('b-cl').innerText = tr.cl;
+
+    let sy=window.speechSynthesis, curr=0, pMax=1, vL=1, mode="study", isP=false, playlist=[], groups=[], allWords=[];
+    const box=document.getElementById("t"), cont=document.getElementById("s"), sel=document.getElementById("plist-sel");
+    
+    const vType = "${c.voice}", baseFS = ${c.fs}, isSyll = ${c.syllable ? 'true' : 'false'}, isTnl = ${c.tunnel ? 'true' : 'false'}, tnlC = ${c.tunnelCount};
+    const sfxM = "${sfxModeData}", sfxE = "${sfxEndData}";
+    
+    let allQuizData = ${safeQuizJson};
+    let activeQuizData = [];
+    let currQ = 0, quizStartTime = 0, quizScore = 0, firstTry = true;
+
+    let tInt = null, tVal = ${c.tdur}; const tEn = ${c.ten ? 'true' : 'false'}, tDisp = document.getElementById('t-disp');
+    function updT() { if(tDisp) tDisp.innerText = Math.floor(tVal/60) + ':' + (tVal%60<10?'0':'') + tVal%60; }
+    function startT() { if(!tInt && tEn && tVal>0) tInt = setInterval(() => { if(tVal>0){tVal--;updT();} else{stopT();window.st();} }, 1000); }
+    function stopT() { if(tInt){clearInterval(tInt); tInt=null;} } function resetT() { stopT(); tVal=${c.tdur}; updT(); } if(tEn) updT();
+
+    function fireWorks() {
+        const w = document.getElementById('w');
+        for(let i=0; i<40; i++){
+            let f = document.createElement('div'); f.className='fw';
+            f.style.left = 10 + Math.random()*80 + '%'; f.style.top = 10 + Math.random()*80 + '%';
+            f.style.backgroundColor = 'hsl('+Math.random()*360+',100%,60%)';
+            let vx = (Math.random()-0.5)*100, vy = (Math.random()-0.5)*100;
+            f.animate([{transform:'translate(0,0) scale(1)', opacity:1}, {transform:\`translate(\${vx}px, \${vy}px) scale(0)\`, opacity:0}], {duration: 800+Math.random()*500, easing:'ease-out'});
+            w.appendChild(f); setTimeout(()=>f.remove(), 1500);
+        }
+    }
+    function playSfx(type) {
+        if(type==='mode' && sfxM) { new Audio(sfxM).play().catch(()=>{}); return; }
+        if(type==='end' && sfxE) { new Audio(sfxE).play().catch(()=>{}); return; }
+        try {
+            let ac = new (window.AudioContext||window.webkitAudioContext)();
+            let osc = ac.createOscillator(), gn = ac.createGain(); osc.connect(gn); gn.connect(ac.destination);
+            if(type==='mode'){ osc.type='sine'; osc.frequency.setValueAtTime(600, ac.currentTime); gn.gain.setValueAtTime(0.1, ac.currentTime); gn.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.1); osc.start(); osc.stop(ac.currentTime+0.1); }
+            else { osc.type='triangle'; osc.frequency.setValueAtTime(400, ac.currentTime); osc.frequency.linearRampToValueAtTime(800, ac.currentTime+0.3); gn.gain.setValueAtTime(0.2, ac.currentTime); gn.gain.linearRampToValueAtTime(0.001, ac.currentTime+0.3); osc.start(); osc.stop(ac.currentTime+0.3); }
+        } catch(e){}
+    }
+
+    window.startQuizManual = () => { window.st(); ["b-s","b-p","b-t","b-q"].forEach(id=>document.getElementById(id).classList.toggle("act",id==="b-q")); window.startQuiz(); };
+
+    window.startQuiz = () => {
+        let textIdx = sel.value; let qDataForText = allQuizData[textIdx] || [];
+        activeQuizData = qDataForText.filter(x => x.q.trim() !== '' && x.c.trim() !== '');
+        if(activeQuizData.length === 0) { playSfx('end'); fireWorks(); return; }
+        quizStartTime = Date.now(); quizScore = 0;
+        document.getElementById('quiz-feedback').style.display = 'none';
+        document.getElementById('quiz-modal').style.display = 'flex';
+        showQ(0);
+    };
+
+    function showQ(idx) {
+        currQ = idx; firstTry = true; let d = activeQuizData[idx];
+        document.getElementById('quiz-q').innerText = d.q;
+        let opts = d.w.split(',').map(x=>x.trim()).filter(x=>x).map(x=>({t:x, c:false}));
+        opts.push({t:d.c, c:true}); opts.sort(()=>Math.random()-0.5);
+        document.getElementById('quiz-opts').innerHTML = opts.map(o => \`<button class="qz-btn" onclick="window.ans(\${o.c})">\${o.t}</button>\`).join('');
+    }
+
+    window.ans = (isCorrect) => {
+        if(isCorrect) {
+            playSfx('mode'); if(firstTry) quizScore++;
+            if(currQ + 1 < activeQuizData.length) showQ(currQ + 1);
+            else { document.getElementById('quiz-modal').style.display = 'none'; window.showFeedback(); playSfx('end'); fireWorks(); }
+        } else {
+            firstTry = false; let qm = document.getElementById('quiz-modal');
+            qm.style.backgroundColor = 'rgba(255,0,0,0.85)';
+            setTimeout(()=>qm.style.backgroundColor = 'rgba(${rgbStr},${modalOp})', 300);
+        }
+    };
+
+    window.showFeedback = () => {
+        let timeSpent = Math.floor((Date.now() - quizStartTime) / 1000);
+        let m = Math.floor(timeSpent / 60); let s = timeSpent % 60; let ts = m + ":" + (s < 10 ? '0' : '') + s;
+        document.getElementById('qfb-slogan').innerText = ${JSON.stringify(c.qfbSlogan || "Отличная работа!")};
+        document.getElementById('qfb-stats').innerHTML = tr.tm + ts + "<br>" + tr.cr + quizScore + tr.of + activeQuizData.length;
+        let rew = document.getElementById('qfb-reward');
+        if(${qfbImgData ? 'true' : 'false'}) { rew.innerHTML = "<img src='${qfbImgData}'>"; } else { rew.innerHTML = "<span></span>"; rew.querySelector('span').innerText = ${JSON.stringify(c.qfbEmoji || "🏆")}; }
+        document.getElementById('quiz-feedback').style.display = 'flex';
+    }
+
+    window.startQuizPreview = () => {
+        document.getElementById('quiz-feedback').style.display = 'none'; document.getElementById('quiz-modal').style.display = 'flex';
+        document.getElementById('quiz-q').innerText = "Preview Question?";
+        document.getElementById('quiz-opts').innerHTML = \`<button class="qz-btn">Wrong</button><button class="qz-btn">Correct</button>\`;
+    };
+    window.showFeedbackPreview = () => {
+        document.getElementById('quiz-modal').style.display = 'none'; 
+        document.getElementById('qfb-slogan').innerText = ${JSON.stringify(c.qfbSlogan || "Отличная работа!")};
+        document.getElementById('qfb-stats').innerHTML = tr.tm + "0:45<br>" + tr.cr + "5" + tr.of + "5";
+        let rew = document.getElementById('qfb-reward'); 
+        if(${qfbImgData ? 'true' : 'false'}) { rew.innerHTML = "<img src='${qfbImgData}'>"; } else { rew.innerHTML = "<span></span>"; rew.querySelector('span').innerText = ${JSON.stringify(c.qfbEmoji || "🏆")}; }
+        document.getElementById('quiz-feedback').style.display = 'flex';
+    };
+
+    function autoFit() { let sz=baseFS; box.style.fontSize=sz+"px"; for(let i=0;i<30;i++){ if(box.offsetHeight>cont.offsetHeight || box.offsetWidth>cont.offsetWidth){sz-=1; box.style.fontSize=sz+"px";} else break; } }
+    window.loadL = (idx) => { if(!playlist[idx]) return; window.st(); document.getElementById('quiz-modal').style.display = 'none'; document.getElementById('quiz-feedback').style.display = 'none'; build(playlist[idx].text); };
+    
+    function build(txt){
+        allWords = txt.replace(/\\n/g, " ").split(/\\s+/).filter(x=>x.length>0);
+        box.innerHTML = allWords.map((w,i)=>{
+            let dw = w; if(isSyll) dw = w.replace(/([аеёиоуыэюяАЕЁИОУЫЭЮЯ])(?=[а-яА-ЯёЁ]*[аеёиоуыэюяАЕЁИОУЫЭЮЯ])/g, "$1-");
+            return "<span class='itm' data-id='"+i+"'>"+dw+"</span>";
+        }).join(" ");
+        setTimeout(autoFit, 50);
+        groups = mode==="study" ? allWords.map((w,i)=>[i]) : (mode==="practice" ? getGrps(allWords) : [allWords.map((w,i)=>i)]);
+        pMax = mode==="train" ? 1 : groups.length - 1; if(pMax<1) pMax=1;
+    }
+    function getGrps(ws){ const mk=["with","and","but","in","on","at","for","of","from","to","is","a","the"]; let res=[], cur=[]; ws.forEach((w,i)=>{ cur.push(i); if(w.match(/[,.!?;:|—–]/) || (i<ws.length-1 && mk.includes(ws[i+1].toLowerCase()))) { res.push(cur); cur=[]; } }); if(cur.length) res.push(cur); return res.filter(g=>g.length); }
+    
+    window.tgNm = () => { document.body.classList.toggle('nm'); document.getElementById('w').classList.toggle('nm'); document.getElementById('t').classList.toggle('nm'); };
+    window.setM = (m) => { document.getElementById('quiz-modal').style.display = 'none'; document.getElementById('quiz-feedback').style.display = 'none'; mode=m; playSfx('mode'); window.st(); if(playlist[sel.value]) build(playlist[sel.value].text); ["b-s","b-p","b-t","b-q"].forEach(id=>document.getElementById(id).classList.toggle("act",id==="b-"+m[0])); };
+    window.st = () => { sy.cancel(); curr=0; isP=false; clr(); document.getElementById('pb-f').style.width='0%'; resetT(); };
+    window.pa = () => { sy.pause(); isP=true; stopT(); };
+    window.vM = (v) => { vL=v; };
+    window.sk = (e) => { if(mode==="train") return; const r=document.getElementById('pb-c').getBoundingClientRect(); let tgt=Math.floor(((e.clientX-r.left)/r.width)*(groups.length)); if(tgt<0) tgt=0; if(tgt>=groups.length) tgt=groups.length-1; window.st(); curr=tgt; hlt(curr); };
+    window.p = () => { if(sy.speaking && isP){ sy.resume(); isP=false; startT(); return; } if(sy.speaking) return; startT(); loop(curr); };
+    
+    function clr(){ document.querySelectorAll(".itm").forEach(s=>{ s.classList.remove("a"); if(isTnl) s.style.opacity='0'; }); }
+    function hlt(idx){
+        clr();
+        if(groups[idx]) groups[idx].forEach(id=>{ const el=document.querySelector("[data-id='"+id+"']"); if(el){ el.classList.add("a"); if(isTnl) el.style.opacity='1'; }});
+        if(isTnl && tnlC>0) { let vc=0; for(let i=1; i<20; i++){ if(groups[idx+i] && vc<tnlC){ groups[idx+i].forEach(id=>{ const el=document.querySelector("[data-id='"+id+"']"); if(el) el.style.opacity='0.4'; }); vc++; } } }
+        curr = idx; document.getElementById('pb-f').style.width = ((curr/pMax)*100)+"%";
+    }
+    
+    function loop(idx){
+        if(idx >= groups.length && mode !== "train") { 
+            setTimeout(()=>{ window.st(); if(${c.qen ? 'true' : 'false'}) window.startQuiz(); else { playSfx('end'); fireWorks(); } }, 400); 
+            return; 
+        }
+        const u = new SpeechSynthesisUtterance(mode==="train" ? allWords.join(" ") : groups[idx].map(id=>allWords[id]).join(" "));
+        const vs = sy.getVoices();
+        u.voice = vType==="male" ? (vs.find(v=>v.name.includes("Male")||v.name.includes("David"))||vs[0]) : (vs.find(v=>v.name.includes("Female")||v.name.includes("Zira"))||vs[0]);
+        u.pitch = vType==="child"?1.5:1.0; u.rate = vType==="child"?1.1:0.85; u.volume = vL;
+        if (mode === "train") {
+            u.onboundary = (e) => { if (e.name==="word") { const tb = allWords.join(" ").substring(0, e.charIndex).trim(); const wi = tb===""?0:tb.split(/\\s+/).length; clr(); const el = document.querySelector("[data-id='"+wi+"']"); if(el) el.classList.add("a"); document.getElementById('pb-f').style.width = ((wi/allWords.length)*100)+"%"; } };
+        } else u.onstart = () => hlt(idx);
+        u.onend = () => { 
+            if(!isP) { 
+                if (mode==="train") {
+                    setTimeout(()=>{ window.st(); if(${c.qen ? 'true' : 'false'}) window.startQuiz(); else { playSfx('end'); fireWorks(); } }, 400);
+                } else setTimeout(()=>loop(idx+1), mode==="practice"?700:100); 
+            } 
+        };
+        sy.speak(u);
+    }
+    
+    async function initList(){ try{ const r=await fetch("${c.url}"); playlist=await r.json(); sel.innerHTML=playlist.map((item,i)=>"<option value='"+i+"'>"+item.title+"</option>").join(""); window.loadL(0); }catch(e){sel.innerHTML="<option>JSON Error</option>";} }
+    if(sy.onvoiceschanged !== undefined) sy.onvoiceschanged = initList; initList(); window.addEventListener('resize', ()=>setTimeout(autoFit, 100));
+    
+    if(${c.prevQ ? 'true' : 'false'}) setTimeout(() => window.startQuizPreview(), 300);
+    if(${c.prevF ? 'true' : 'false'}) setTimeout(() => window.showFeedbackPreview(), 300);
+})();
+<\/script></body></html>`;
+
+        lastGeneratedContent = content;
+        const container = document.getElementById('pv-container'); container.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.style.width = c.gw + 'px'; iframe.style.height = Math.round(c.gw/1.6) + 'px'; iframe.style.border = '0';
+        iframe.style.transform = `scale(${Math.min(1, (container.offsetWidth - 40) / c.gw)})`;
+        iframe.srcdoc = content; container.appendChild(iframe);
+        document.getElementById('code-res').value = `<iframe width="${c.gw}" height="${Math.round(c.gw/1.6)}" frameborder="0" allow="autoplay" srcdoc='${content.replace(/'/g, "&#39;")}'></iframe>`;
+    }
+
+    function liveUpdate() { fullReload(); }
+    function copyCode() { document.getElementById('code-res').select(); document.execCommand('copy'); alert('Код скопирован!'); }
+    function downloadCode() { const url=URL.createObjectURL(new Blob([document.getElementById('code-res').value], {type:'text/plain'})); const a=document.createElement('a'); a.href=url; a.download='genially_game_code.txt'; a.click(); URL.revokeObjectURL(url); }
+    function downloadHTML() { if(!lastGeneratedContent) return; const url=URL.createObjectURL(new Blob([lastGeneratedContent], {type:'text/html;charset=utf-8'})); const a=document.createElement('a'); a.href=url; a.download='voice_pro_game.html'; a.click(); URL.revokeObjectURL(url); }
+
+    window.onload = () => { fetchEditorPlaylist().then(() => setTimeout(fullReload, 500)); };
+</script>
+</body>
+</html>
